@@ -3,6 +3,8 @@ import bcrypt from 'bcrypt-nodejs'
 import cors from 'cors';
 import knex from 'knex';
 
+import {handleRegister} from './Controllers/register.js';
+
 const db = knex({
     client: 'pg',
     connection: {
@@ -12,8 +14,6 @@ const db = knex({
         database:'smart-brain'
     }
 })
-
-
 
 const app = express();
 app.use(express.urlencoded({extended: false}));
@@ -43,34 +43,8 @@ app.post('/signin', (req,res) => {
     .catch(err =>{ res.status(400).json("Wrong creds punk.")})
 })
 
-app.post('/register', (req,res) => {
-    const { email, password, name} = req.body;
-    const pWordHash =  bcrypt.hashSync(password);
-    db.transaction(trx => {
-        trx.insert({
-            hash: pWordHash,
-            email: email
-        })
-        .into('login')
-        .returning('email')
-        .then(loginEmail => {
-         return trx('users')
-            .returning('*')
-            .insert({
-                email:loginEmail[0],
-                name:name,
-                joined: new Date()
-                })
-            .then(user => {
-                res.json(user[0]);
-            })
-            .then(trx.commit)
-            .catch(trx.rollback)
-        })
-        })
-        .catch(err => { 
-            res.status(400).json('Unable to register.')})
-})
+app.post('/register', (req,res) => {handleRegister(req,res,db,bcrypt)});
+
 
 app.get('/profile/:id', (req,res) => {
     const {id} = req.params;
