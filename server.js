@@ -4,6 +4,9 @@ import cors from 'cors';
 import knex from 'knex';
 
 import {handleRegister} from './Controllers/register.js';
+import {signin} from './Controllers/signin.js';
+import { image } from './Controllers/image.js';
+import { profile } from './Controllers/profile.js';
 
 const db = knex({
     client: 'pg',
@@ -24,52 +27,14 @@ app.get('/', (req,res) => {
     res.send(database.users);
 })
 
-app.post('/signin', (req,res) => {
-    db.select('email' , 'hash').from('login')
-    .where('email', '=', req.body.email)
-    .then(data => {
-        const isValid = bcrypt.compareSync(req.body.password, data[0].hash);
-        if(isValid){
-            return db.select('*').from('users')
-            .where('email', '=', req.body.email)
-            .then(user => {
-                res.json(user[0])
-            })
-            .catch(err => { res.status(400).json("Unable to sign in.")})
-        }else{
-            res.status(400).json("Wrong Creds Punk.")
-        }
-    })
-    .catch(err =>{ res.status(400).json("Wrong creds punk.")})
-})
+app.post('/signin', signin(db,bcrypt));
 
 app.post('/register', (req,res) => {handleRegister(req,res,db,bcrypt)});
 
+app.get('/profile/:id', (req,res) => {profile(req,res,db)});
 
-app.get('/profile/:id', (req,res) => {
-    const {id} = req.params;
-    db.select('*').from('users').where({id}).then(user => {
-        if(user.length){
-        res.json(user[0]);
-        } else {
-            res.status(400).json('Could not find the user.')
-        }
-    }).catch(err => {
-         res.status(400).json('Something went wrong :(')
-    })
-})
-
-app.put('/image', (req,res) => {
-    const {id} = req.body;
-    db('users').where('id', '=', id)
-    .increment('entries', 1)
-    .returning('entries')
-    .then(entries => {
-        res.json(entries[0]);
-    }).catch(err => {
-        res.status(400).json('Unable to got entries.')
-    })
-})
+app.put('/image', (req,res) => {image.handleImage(req,res,db)});
+app.post('/imageurl', (req,res) => {image.handleImageApiCall(req,res)});
 
 app.listen(3000, ()=>{
     console.log('App is running on 3000')

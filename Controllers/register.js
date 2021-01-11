@@ -1,5 +1,8 @@
 export const handleRegister = (req,res,db,bcrypt) => {
     const { email, password, name} = req.body;
+    if(!email || !password || !name){
+        return res.status(400).json('Form invalid.')
+    }
     const pWordHash =  bcrypt.hashSync(password);
     db.transaction(trx => {
         trx.insert({
@@ -24,5 +27,6 @@ export const handleRegister = (req,res,db,bcrypt) => {
         })
         })
         .catch(err => { 
-            res.status(400).json('Unable to register.')})}
-
+            res.status(400).json('Unable to register.')
+        })
+}
